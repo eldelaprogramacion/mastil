@@ -416,10 +416,10 @@ function buildScalePositionPath(tonic, pattern) {
   for (const interval of intervals.slice(1)) {
     const targetMidi = startMidi + interval;
     const candidates = positionCandidatesForTarget(targetMidi, window);
-    if (!candidates.length) return [];
+    if (!candidates.length) break;
 
     const candidate = choosePositionCandidate(candidates, previous);
-    if (!candidate) return [];
+    if (!candidate) break;
 
     path.push({
       ...candidate,
@@ -978,9 +978,16 @@ function renderNotes() {
   notesLayer.replaceChildren(fragments);
   selectionStatus.textContent = positionModeActive && !visiblePositions.length
     ? (activePatternKind === "scale" ? "Posición no disponible para esa cuerda y octavas" : "Acorde no disponible en esa posición")
+    : activePatternKind === "scale" && positionModeActive && visiblePositions.length < requestedScaleNoteCount()
+    ? `${visiblePositions.length} notas visibles: ${visiblePositions.map(position => noteName(position.pitch)).join(" · ")}`
     : activeNotes.length
     ? `${activeNotes.length} ${activeNotes.length === 1 ? "nota activa" : "notas activas"}: ${activeNotes.map(item => noteName(item.pitch)).join(" · ")}`
     : "Ninguna nota activa";
+}
+
+function requestedScaleNoteCount() {
+  if (activePatternKind !== "scale") return 0;
+  return selectedScale().intervals.length * Number(scaleOctaves.value || 1) + 1;
 }
 
 function createNoteMarker(string, stringIndex, fret, item) {
