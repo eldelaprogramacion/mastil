@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Diapasón interactivo de guitarra de 15 trastes" />
+    <title>Mapa del diapasón</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <p class="eyebrow">Explorador armónico</p>
+          <h1>Mapa del diapasón</h1>
+          <p class="intro">Asigna un color único y activa las notas que quieres encontrar.</p>
+        </div>
+        <div class="legend">
+          <span><i class="legend-line string-line"></i> Cuerda</span>
+          <span><i class="legend-line fret-line"></i> Traste</span>
+        </div>
+      </header>
+
+      <section class="harmony-panel" aria-labelledby="harmony-title">
+        <div class="section-heading harmony-heading">
+          <div>
+            <p class="eyebrow">Biblioteca armónica</p>
+            <h2 id="harmony-title">Acordes y escalas</h2>
+          </div>
+          <p class="pattern-status" id="patternStatus" aria-live="polite">Selección manual</p>
+        </div>
+        <div class="harmony-grid">
+          <article class="harmony-card">
+            <div class="harmony-card-title">
+              <span class="harmony-symbol" aria-hidden="true">△</span>
+              <div><small>Constructor</small><h3>Acordes</h3></div>
+            </div>
+            <div class="selector-row">
+              <label>Tónica<select id="chordRoot" aria-label="Tónica del acorde"></select></label>
+              <label>Tipo<select id="chordType" aria-label="Tipo de acorde"></select></label>
+              <button class="apply-button" id="applyChord" type="button">Mostrar acorde</button>
+            </div>
+          </article>
+          <article class="harmony-card">
+            <div class="harmony-card-title">
+              <span class="harmony-symbol scale-symbol" aria-hidden="true">≋</span>
+              <div><small>Constructor</small><h3>Escalas</h3></div>
+            </div>
+            <div class="selector-row">
+              <label>Tónica<select id="scaleRoot" aria-label="Tónica de la escala"></select></label>
+              <label>Tipo<select id="scaleType" aria-label="Tipo de escala"></select></label>
+              <button class="apply-button" id="applyScale" type="button">Mostrar escala</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="note-panel" aria-labelledby="notes-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Paleta de notas</p>
+            <h2 id="notes-title">Selecciona qué quieres ver</h2>
+          </div>
+          <button class="clear-button" id="clearButton" type="button">Limpiar selección</button>
+        </div>
+        <div class="note-controls" id="noteControls"></div>
+      </section>
+
+      <section class="fretboard-section" aria-labelledby="fretboard-title">
+        <div class="section-heading fretboard-heading">
+          <div>
+            <p class="eyebrow">Afinación estándar</p>
+            <h2 id="fretboard-title">Primera cuerda arriba · sexta cuerda abajo</h2>
+          </div>
+          <p class="selection-status" id="selectionStatus" aria-live="polite">Ninguna nota activa</p>
+        </div>
+
+        <div class="fretboard-scroller">
+          <div class="fretboard-layout">
+            <div class="string-labels" id="stringLabels" aria-hidden="true"></div>
+            <div class="fretboard" id="fretboard" aria-label="Diapasón de guitarra de 15 trastes">
+              <div class="open-zone" aria-hidden="true"><span>Al aire</span></div>
+              <div class="wood-grain" aria-hidden="true"></div>
+              <div class="fret-lines" id="fretLines" aria-hidden="true"></div>
+              <div class="strings" id="strings" aria-hidden="true"></div>
+              <div class="fret-markers" id="fretMarkers" aria-hidden="true"></div>
+              <div class="notes-layer" id="notesLayer"></div>
+              <div class="fret-numbers" id="fretNumbers" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+        <p class="scroll-hint">Desliza horizontalmente para recorrer los 15 trastes.</p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
