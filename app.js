@@ -196,12 +196,12 @@ const INSTRUMENTS = [
     fretboardTitle: "Guitarra · primera cuerda arriba · sexta cuerda abajo",
     ariaLabel: "Diapasón de guitarra de 15 trastes",
     strings: [
-      { note: "E", pitch: 4, number: 1 },
-      { note: "B", pitch: 11, number: 2 },
-      { note: "G", pitch: 7, number: 3 },
-      { note: "D", pitch: 2, number: 4 },
-      { note: "A", pitch: 9, number: 5 },
-      { note: "E", pitch: 4, number: 6 }
+      { note: "E", pitch: 4, midi: 64, number: 1 },
+      { note: "B", pitch: 11, midi: 59, number: 2 },
+      { note: "G", pitch: 7, midi: 55, number: 3 },
+      { note: "D", pitch: 2, midi: 50, number: 4 },
+      { note: "A", pitch: 9, midi: 45, number: 5 },
+      { note: "E", pitch: 4, midi: 40, number: 6 }
     ]
   },
   {
@@ -211,18 +211,23 @@ const INSTRUMENTS = [
     fretboardTitle: "Bajo · primera cuerda arriba · cuarta cuerda abajo",
     ariaLabel: "Diapasón de bajo de 15 trastes",
     strings: [
-      { note: "G", pitch: 7, number: 1 },
-      { note: "D", pitch: 2, number: 2 },
-      { note: "A", pitch: 9, number: 3 },
-      { note: "E", pitch: 4, number: 4 }
+      { note: "G", pitch: 7, midi: 43, number: 1 },
+      { note: "D", pitch: 2, midi: 38, number: 2 },
+      { note: "A", pitch: 9, midi: 33, number: 3 },
+      { note: "E", pitch: 4, midi: 28, number: 4 }
     ]
   }
 ];
 
 const BOARD = { width: 1320, height: 430, openWidth: 82, frets: 15 };
+const POSITION_MAX_FRET = 12;
+const POSITION_SPAN = 5;
 const state = NOTES.map((note, pitch) => ({ note, pitch, active: false, color: "", displayName: "" }));
 let activeInstrument = INSTRUMENTS[0];
 let activeSequence = [];
+let visiblePositions = [];
+let activePatternKind = "";
+let positionModeActive = false;
 let noteSpelling = "sharp";
 
 const controls = document.querySelector("#noteControls");
@@ -238,6 +243,19 @@ const patternStatus = document.querySelector("#patternStatus");
 const instrumentSelect = document.querySelector("#instrumentSelect");
 const instrumentTuning = document.querySelector("#instrumentTuning");
 const fretboardTitle = document.querySelector("#fretboard-title");
+const chordRoot = document.querySelector("#chordRoot");
+const chordType = document.querySelector("#chordType");
+const chordView = document.querySelector("#chordView");
+const chordString = document.querySelector("#chordString");
+const chordRootFret = document.querySelector("#chordRootFret");
+const chordPosition = document.querySelector("#chordPosition");
+const scaleRoot = document.querySelector("#scaleRoot");
+const scaleType = document.querySelector("#scaleType");
+const scaleView = document.querySelector("#scaleView");
+const scaleOctaves = document.querySelector("#scaleOctaves");
+const scaleString = document.querySelector("#scaleString");
+const scaleRootFret = document.querySelector("#scaleRootFret");
+const scalePosition = document.querySelector("#scalePosition");
 
 function noteName(pitch) {
   return state[pitch].displayName || NOTES[pitch][noteSpelling];
@@ -262,6 +280,9 @@ function resetDisplayNames() {
 function setManualMode() {
   resetDisplayNames();
   activeSequence = [];
+  visiblePositions = [];
+  activePatternKind = "";
+  positionModeActive = false;
   patternStatus.textContent = "Selección manual";
 }
 
@@ -297,6 +318,343 @@ function spellPatternNote(tonic, interval, degree) {
   return `${letter}${accidentalForOffset(offset)}` || NOTES[pitch][noteSpelling];
 }
 
+function selectedScaleTonic() {
+  return TONICS[Number(scaleRoot.value)];
+}
+
+function selectedScale() {
+  return SCALES[Number(scaleType.value)];
+}
+
+function selectedChordTonic() {
+  return TONICS[Number(chordRoot.value)];
+}
+
+function selectedChord() {
+  return CHORDS[Number(chordType.value)];
+}
+
+function rootFretPositions(tonic, stringIndex) {
+  const string = activeInstrument.strings[stringIndex];
+  const positions = [];
+
+  for (let fret = 0; fret <= POSITION_MAX_FRET; fret += 1) {
+    if ((string.pitch + fret) % NOTES.length === tonic.pitch) positions.push(fret);
+  }
+
+  return positions;
+}
+
+function handPositionWindows(rootFret) {
+  const windows = Array.from({ length: POSITION_SPAN }, (_, offset) => ({
+    start: rootFret - (POSITION_SPAN - 1 - offset),
+    end: rootFret + offset
+  }));
+
+  return windows.filter(window => window.start >= 0 && window.end <= POSITION_MAX_FRET);
+}
+
+function buildScaleSequence(pattern, octaves) {
+  const intervals = [];
+
+  for (let octave = 0; octave < octaves; octave += 1) {
+    pattern.intervals.forEach(interval => intervals.push(interval + octave * 12));
+  }
+
+  intervals.push(octaves * 12);
+  return intervals;
+}
+
+function positionCandidatesForTarget(targetMidi, window) {
+  return activeInstrument.strings.flatMap((string, stringIndex) => {
+    const fret = targetMidi - string.midi;
+    if (!fretInPositionWindow(fret, window)) return [];
+    return [{ string, stringIndex, fret }];
+  });
+}
+
+function fretInPositionWindow(fret, window) {
+  if (fret < 0 || fret > POSITION_MAX_FRET) return false;
+  if (fret >= window.start && fret <= window.end) return true;
+  return fret === 0 && window.start <= 1;
+}
+
+function choosePositionCandidate(candidates, previous) {
+  return candidates
+    .map(candidate => ({
+      candidate,
+      score:
+        Math.abs(candidate.fret - previous.fret) +
+        Math.abs(candidate.stringIndex - previous.stringIndex) * 2 +
+        (candidate.stringIndex > previous.stringIndex ? 8 : 0)
+    }))
+    .sort((a, b) => a.score - b.score)[0]?.candidate;
+}
+
+function buildScalePositionPath(tonic, pattern) {
+  if (scaleView.value !== "position") return [];
+
+  const stringIndex = Number(scaleString.value || 0);
+  const rootFret = Number(scaleRootFret.value);
+  const window = selectedWindow(scalePosition);
+  if (!Number.isFinite(rootFret)) return [];
+  if (!window) return [];
+
+  const startString = activeInstrument.strings[stringIndex];
+  const startMidi = startString.midi + rootFret;
+  const intervals = buildScaleSequence(pattern, Number(scaleOctaves.value || 1));
+  const path = [{
+    string: startString,
+    stringIndex,
+    fret: rootFret,
+    pitch: tonic.pitch,
+    interval: 0
+  }];
+
+  let previous = path[0];
+
+  for (const interval of intervals.slice(1)) {
+    const targetMidi = startMidi + interval;
+    const candidates = positionCandidatesForTarget(targetMidi, window);
+    if (!candidates.length) return [];
+
+    const candidate = choosePositionCandidate(candidates, previous);
+    if (!candidate) return [];
+
+    path.push({
+      ...candidate,
+      pitch: modulo(tonic.pitch + interval, NOTES.length),
+      interval
+    });
+    previous = candidate;
+  }
+
+  return path;
+}
+
+function buildChordPositionShape(tonic, pattern) {
+  if (chordView.value !== "position") return [];
+
+  const stringIndex = Number(chordString.value || 0);
+  const rootFret = Number(chordRootFret.value);
+  const window = selectedWindow(chordPosition);
+  if (!Number.isFinite(rootFret)) return [];
+  if (!window) return [];
+
+  const startString = activeInstrument.strings[stringIndex];
+  const startMidi = startString.midi + rootFret;
+  const intervals = [...new Set(pattern.intervals.map(interval => interval % 12))];
+  const rootPosition = {
+    string: startString,
+    stringIndex,
+    fret: rootFret,
+    pitch: tonic.pitch,
+    interval: 0
+  };
+
+  return buildChordVoicing(intervals, rootPosition, startMidi, window);
+}
+
+function buildChordVoicing(intervals, rootPosition, startMidi, window) {
+  const requiredStrings = Math.min(intervals.length, activeInstrument.strings.length);
+  const continuousGroups = continuousStringGroups(requiredStrings).filter(group => group.includes(rootPosition.stringIndex));
+  const openGroups = stringCombinations(requiredStrings).filter(group => group.includes(rootPosition.stringIndex));
+  const groups = [
+    ...continuousGroups,
+    ...openGroups.filter(group => !continuousGroups.some(continuous => sameStringGroup(continuous, group)))
+  ].sort((a, b) => chordGroupScore(a, rootPosition.stringIndex) - chordGroupScore(b, rootPosition.stringIndex));
+
+  for (const group of groups) {
+    const assignment = assignChordIntervalsToStrings(group, intervals, rootPosition, startMidi, window);
+    if (assignment.length) return assignment;
+  }
+
+  return [];
+}
+
+function continuousStringGroups(size) {
+  const groups = [];
+
+  for (let start = 0; start <= activeInstrument.strings.length - size; start += 1) {
+    groups.push(Array.from({ length: size }, (_, offset) => start + offset));
+  }
+
+  return groups;
+}
+
+function stringCombinations(size) {
+  const groups = [];
+
+  function collect(start, group) {
+    if (group.length === size) {
+      groups.push([...group]);
+      return;
+    }
+
+    for (let index = start; index < activeInstrument.strings.length; index += 1) {
+      group.push(index);
+      collect(index + 1, group);
+      group.pop();
+    }
+  }
+
+  collect(0, []);
+  return groups;
+}
+
+function sameStringGroup(a, b) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function chordGroupScore(group, rootStringIndex) {
+  const center = (group[0] + group[group.length - 1]) / 2;
+  const gaps = group.slice(1).reduce((total, stringIndex, index) => (
+    total + Math.max(0, stringIndex - group[index] - 1)
+  ), 0);
+
+  return Math.abs(center - rootStringIndex) + gaps * 3;
+}
+
+function assignChordIntervalsToStrings(group, intervals, rootPosition, startMidi, window) {
+  const remainingStrings = group.filter(index => index !== rootPosition.stringIndex);
+  const remainingIntervals = intervals.filter(interval => interval !== 0);
+  const assignments = [rootPosition];
+  const completed = [];
+
+  function search(stringOffset, availableIntervals) {
+    if (stringOffset >= remainingStrings.length) {
+      if (availableIntervals.length === 0) completed.push([...assignments]);
+      return;
+    }
+
+    const currentStringIndex = remainingStrings[stringOffset];
+    const string = activeInstrument.strings[currentStringIndex];
+    const options = availableIntervals
+      .flatMap(interval => chordOptionsForString(interval, string, currentStringIndex, startMidi, window))
+      .sort((a, b) => chordOptionScore(a, rootPosition) - chordOptionScore(b, rootPosition));
+
+    for (const option of options) {
+      assignments.push(option);
+      search(stringOffset + 1, availableIntervals.filter(interval => interval !== option.interval));
+      assignments.pop();
+    }
+  }
+
+  search(0, remainingIntervals);
+
+  return completed
+    .map(assignment => ({
+      assignment,
+      score: chordVoicingScore(assignment, rootPosition)
+    }))
+    .sort((a, b) => a.score - b.score)[0]?.assignment.sort((a, b) => a.stringIndex - b.stringIndex) || [];
+}
+
+function chordOptionsForString(interval, string, stringIndex, startMidi, window) {
+  const options = [];
+
+  for (let octave = -2; octave <= 2; octave += 1) {
+    const targetMidi = startMidi + interval + octave * 12;
+    const fret = targetMidi - string.midi;
+    if (!fretInPositionWindow(fret, window)) continue;
+    options.push({
+      string,
+      stringIndex,
+      fret,
+      pitch: modulo(startMidi + interval, NOTES.length),
+      interval
+    });
+  }
+
+  return options;
+}
+
+function chordOptionScore(option, rootPosition) {
+  return Math.abs(option.fret - rootPosition.fret) + Math.abs(option.stringIndex - rootPosition.stringIndex) * 2;
+}
+
+function chordVoicingScore(assignment, rootPosition) {
+  const fretted = assignment.map(note => note.fret).filter(fret => fret > 0);
+  const fretSpan = fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0;
+  const strings = assignment.map(note => note.stringIndex).sort((a, b) => a - b);
+  const stringGaps = strings.slice(1).reduce((total, stringIndex, index) => (
+    total + Math.max(0, stringIndex - strings[index] - 1)
+  ), 0);
+  const rootDistance = assignment.reduce((total, note) => (
+    total + Math.abs(note.fret - rootPosition.fret) + Math.abs(note.stringIndex - rootPosition.stringIndex)
+  ), 0);
+
+  return fretSpan * 8 + stringGaps * 5 + rootDistance;
+}
+
+function selectedWindow(selectElement) {
+  const [start, end] = selectElement.value.split("-").map(Number);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return { start, end };
+}
+
+function updateStringOptions(selectElement) {
+  const previousValue = selectElement.value;
+  selectElement.innerHTML = activeInstrument.strings
+    .map((string, index) => ({ string, index }))
+    .reverse()
+    .map(({ string, index }) => `<option value="${index}">Cuerda ${string.number} · ${string.note}</option>`)
+    .join("");
+
+  if ([...selectElement.options].some(option => option.value === previousValue)) {
+    selectElement.value = previousValue;
+  }
+}
+
+function updateRootFretOptions(tonic, stringSelect, rootFretSelect, positionSelect, viewSelect, extraControls = []) {
+  const previousRoot = rootFretSelect.value;
+  const positions = rootFretPositions(tonic, Number(stringSelect.value || 0));
+
+  rootFretSelect.innerHTML = positions.length
+    ? positions.map(fret => `<option value="${fret}">${fret === 0 ? "Al aire" : `Traste ${fret}`}</option>`).join("")
+    : `<option value="">Sin tónica</option>`;
+
+  if (positions.map(String).includes(previousRoot)) {
+    rootFretSelect.value = previousRoot;
+  }
+
+  updateHandPositionOptions(rootFretSelect, positionSelect, viewSelect, positions, extraControls);
+}
+
+function updateHandPositionOptions(rootFretSelect, positionSelect, viewSelect, positions, extraControls = []) {
+  const previousPosition = positionSelect.value;
+  const rootFret = Number(rootFretSelect.value);
+  const windows = Number.isFinite(rootFret) ? handPositionWindows(rootFret) : [];
+
+  positionSelect.innerHTML = windows.length
+    ? windows.map(window => `<option value="${window.start}-${window.end}">Trastes ${window.start} a ${window.end}</option>`).join("")
+    : `<option value="">Sin posición</option>`;
+
+  if ([...positionSelect.options].some(option => option.value === previousPosition)) {
+    positionSelect.value = previousPosition;
+  }
+
+  const positionMode = viewSelect.value === "position";
+  extraControls.forEach(control => { control.disabled = !positionMode; });
+  rootFretSelect.disabled = !positionMode || !positions.length;
+  positionSelect.disabled = !positionMode || !windows.length;
+}
+
+function updateScalePositionOptions() {
+  updateRootFretOptions(selectedScaleTonic(), scaleString, scaleRootFret, scalePosition, scaleView, [scaleOctaves, scaleString]);
+}
+
+function updateChordPositionOptions() {
+  updateRootFretOptions(selectedChordTonic(), chordString, chordRootFret, chordPosition, chordView, [chordString]);
+}
+
+function updateAllPositionOptions() {
+  updateStringOptions(scaleString);
+  updateStringOptions(chordString);
+  updateScalePositionOptions();
+  updateChordPositionOptions();
+}
+
 function stringY(index) {
   const padding = 40;
   return padding + index * ((BOARD.height - padding * 2) / (activeInstrument.strings.length - 1));
@@ -315,21 +673,53 @@ function fretCenter(fret) {
 
 function buildHarmonySelectors() {
   const tonicOptions = TONICS.map((tonic, index) => `<option value="${index}">${tonic.label}</option>`).join("");
-  document.querySelector("#chordRoot").innerHTML = tonicOptions;
-  document.querySelector("#scaleRoot").innerHTML = tonicOptions;
-  document.querySelector("#chordType").innerHTML = CHORDS.map((chord, index) => `<option value="${index}">${chord.code}</option>`).join("");
-  document.querySelector("#scaleType").innerHTML = SCALES.map((scale, index) => `<option value="${index}">${scale.name}</option>`).join("");
+  chordRoot.innerHTML = tonicOptions;
+  scaleRoot.innerHTML = tonicOptions;
+  chordType.innerHTML = CHORDS.map((chord, index) => `<option value="${index}">${chord.code}</option>`).join("");
+  scaleType.innerHTML = SCALES.map((scale, index) => `<option value="${index}">${scale.name}</option>`).join("");
 
   document.querySelector("#applyChord").addEventListener("click", () => {
-    const tonic = TONICS[Number(document.querySelector("#chordRoot").value)];
-    const chord = CHORDS[Number(document.querySelector("#chordType").value)];
+    const tonic = selectedChordTonic();
+    const chord = selectedChord();
     applyPattern(tonic, chord, `${tonic.label}${chord.symbol} · ${chord.name}`, "chord");
   });
 
   document.querySelector("#applyScale").addEventListener("click", () => {
-    const tonic = TONICS[Number(document.querySelector("#scaleRoot").value)];
-    const scale = SCALES[Number(document.querySelector("#scaleType").value)];
+    const tonic = selectedScaleTonic();
+    const scale = selectedScale();
     applyPattern(tonic, scale, `${tonic.label} · ${scale.name}`, "scale");
+  });
+
+  [scaleRoot, scaleType, scaleView, scaleOctaves, scaleString, scaleRootFret, scalePosition].forEach(control => {
+    control.addEventListener("change", () => {
+      if (control === scaleRoot || control === scaleString || control === scaleView) {
+        updateScalePositionOptions();
+      } else if (control === scaleRootFret) {
+        updateHandPositionOptions(scaleRootFret, scalePosition, scaleView, rootFretPositions(selectedScaleTonic(), Number(scaleString.value || 0)), [scaleOctaves, scaleString]);
+      }
+
+      if (activePatternKind === "scale") {
+        const tonic = selectedScaleTonic();
+        const scale = selectedScale();
+        applyPattern(tonic, scale, `${tonic.label} · ${scale.name}`, "scale");
+      }
+    });
+  });
+
+  [chordRoot, chordType, chordView, chordString, chordRootFret, chordPosition].forEach(control => {
+    control.addEventListener("change", () => {
+      if (control === chordRoot || control === chordString || control === chordView) {
+        updateChordPositionOptions();
+      } else if (control === chordRootFret) {
+        updateHandPositionOptions(chordRootFret, chordPosition, chordView, rootFretPositions(selectedChordTonic(), Number(chordString.value || 0)), [chordString]);
+      }
+
+      if (activePatternKind === "chord") {
+        const tonic = selectedChordTonic();
+        const chord = selectedChord();
+        applyPattern(tonic, chord, `${tonic.label}${chord.symbol} · ${chord.name}`, "chord");
+      }
+    });
   });
 }
 
@@ -341,11 +731,25 @@ function buildInstrumentSelector() {
   instrumentSelect.addEventListener("change", () => {
     activeInstrument = INSTRUMENTS[Number(instrumentSelect.value)];
     updateInstrumentText();
+    updateAllPositionOptions();
     buildFretboard();
+    if (activePatternKind === "scale") {
+      const tonic = selectedScaleTonic();
+      const scale = selectedScale();
+      applyPattern(tonic, scale, `${tonic.label} · ${scale.name}`, "scale");
+      return;
+    }
+    if (activePatternKind === "chord") {
+      const tonic = selectedChordTonic();
+      const chord = selectedChord();
+      applyPattern(tonic, chord, `${tonic.label}${chord.symbol} · ${chord.name}`, "chord");
+      return;
+    }
     renderNotes();
   });
 
   updateInstrumentText();
+  updateAllPositionOptions();
 }
 
 function updateInstrumentText() {
@@ -364,6 +768,9 @@ function applyPattern(tonic, pattern, label, kind) {
     item.displayName = "";
   });
   activeSequence = [];
+  activePatternKind = kind;
+  positionModeActive = (kind === "scale" && scaleView.value === "position") || (kind === "chord" && chordView.value === "position");
+  visiblePositions = [];
 
   pattern.intervals.forEach((interval, degreeIndex) => {
     const pitch = (tonic.pitch + interval) % 12;
@@ -372,6 +779,12 @@ function applyPattern(tonic, pattern, label, kind) {
     state[pitch].displayName = spellPatternNote(tonic, interval, degrees[degreeIndex]);
     if (!activeSequence.includes(pitch)) activeSequence.push(pitch);
   });
+
+  if (positionModeActive) {
+    visiblePositions = kind === "scale"
+      ? buildScalePositionPath(tonic, pattern)
+      : buildChordPositionShape(tonic, pattern);
+  }
 
   patternStatus.textContent = label;
   syncControls();
@@ -543,28 +956,43 @@ function renderNotes() {
     ? activeSequence.map(pitch => state[pitch]).filter(item => item.active)
     : state.filter(item => item.active);
 
-  activeInstrument.strings.forEach((string, stringIndex) => {
-    for (let fret = 0; fret <= BOARD.frets; fret += 1) {
-      const pitch = (string.pitch + fret) % 12;
-      const item = state[pitch];
-      if (!item.active) continue;
-
-      const marker = document.createElement("span");
-      const label = noteName(pitch);
-      marker.className = "note-marker";
-      marker.style.left = `${fretCenter(fret)}px`;
-      marker.style.top = `${stringY(stringIndex)}px`;
-      marker.style.setProperty("--note-color", item.color);
-      marker.setAttribute("aria-label", `${label}, cuerda ${string.number}, ${fret === 0 ? "al aire" : `traste ${fret}`}`);
-      marker.innerHTML = `<span class="marker-label">${label}</span>`;
+  if (positionModeActive) {
+    visiblePositions.forEach(position => {
+      const item = state[position.pitch];
+      const marker = createNoteMarker(position.string, position.stringIndex, position.fret, item);
       fragments.append(marker);
-    }
-  });
+    });
+  } else {
+    activeInstrument.strings.forEach((string, stringIndex) => {
+      for (let fret = 0; fret <= BOARD.frets; fret += 1) {
+        const pitch = (string.pitch + fret) % 12;
+        const item = state[pitch];
+        if (!item.active) continue;
+
+        const marker = createNoteMarker(string, stringIndex, fret, item);
+        fragments.append(marker);
+      }
+    });
+  }
 
   notesLayer.replaceChildren(fragments);
-  selectionStatus.textContent = activeNotes.length
+  selectionStatus.textContent = positionModeActive && !visiblePositions.length
+    ? (activePatternKind === "scale" ? "Posición no disponible para esa cuerda y octavas" : "Acorde no disponible en esa posición")
+    : activeNotes.length
     ? `${activeNotes.length} ${activeNotes.length === 1 ? "nota activa" : "notas activas"}: ${activeNotes.map(item => noteName(item.pitch)).join(" · ")}`
     : "Ninguna nota activa";
+}
+
+function createNoteMarker(string, stringIndex, fret, item) {
+  const marker = document.createElement("span");
+  const label = noteName(item.pitch);
+  marker.className = "note-marker";
+  marker.style.left = `${fretCenter(fret)}px`;
+  marker.style.top = `${stringY(stringIndex)}px`;
+  marker.style.setProperty("--note-color", item.color);
+  marker.setAttribute("aria-label", `${label}, cuerda ${string.number}, ${fret === 0 ? "al aire" : `traste ${fret}`}`);
+  marker.innerHTML = `<span class="marker-label">${label}</span>`;
+  return marker;
 }
 
 document.querySelector("#clearButton").addEventListener("click", () => {

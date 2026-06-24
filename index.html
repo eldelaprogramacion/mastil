@@ -33,7 +33,7 @@
           <p class="pattern-status" id="patternStatus" aria-live="polite">Selección manual</p>
         </div>
         <div class="harmony-grid">
-          <article class="harmony-card">
+          <article class="harmony-card chord-card">
             <div class="harmony-card-title">
               <span class="harmony-symbol" aria-hidden="true">△</span>
               <div><small>Constructor</small><h3>Acordes</h3></div>
@@ -43,8 +43,17 @@
               <label>Tipo<select id="chordType" aria-label="Tipo de acorde"></select></label>
               <button class="apply-button" id="applyChord" type="button">Mostrar acorde</button>
             </div>
+            <div class="position-options" aria-label="Opciones de posición para acordes">
+              <label>Vista<select id="chordView" aria-label="Vista de acorde">
+                <option value="all">Todo el diapasón</option>
+                <option value="position">Una posición</option>
+              </select></label>
+              <label>Cuerda inicial<select id="chordString" aria-label="Cuerda inicial del acorde"></select></label>
+              <label>Tónica<select id="chordRootFret" aria-label="Traste inicial de la tónica del acorde"></select></label>
+              <label>Posición<select id="chordPosition" aria-label="Posición de mano del acorde"></select></label>
+            </div>
           </article>
-          <article class="harmony-card">
+          <article class="harmony-card scale-card">
             <div class="harmony-card-title">
               <span class="harmony-symbol scale-symbol" aria-hidden="true">≋</span>
               <div><small>Constructor</small><h3>Escalas</h3></div>
@@ -53,6 +62,19 @@
               <label>Tónica<select id="scaleRoot" aria-label="Tónica de la escala"></select></label>
               <label>Tipo<select id="scaleType" aria-label="Tipo de escala"></select></label>
               <button class="apply-button" id="applyScale" type="button">Mostrar escala</button>
+            </div>
+            <div class="scale-options" aria-label="Opciones de posición para escalas">
+              <label>Vista<select id="scaleView" aria-label="Vista de escala">
+                <option value="all">Todo el diapasón</option>
+                <option value="position">Una posición</option>
+              </select></label>
+              <label>Octavas<select id="scaleOctaves" aria-label="Octavas de la escala">
+                <option value="1">1 octava</option>
+                <option value="2">2 octavas</option>
+              </select></label>
+              <label>Cuerda inicial<select id="scaleString" aria-label="Cuerda inicial de la escala"></select></label>
+              <label>Tónica<select id="scaleRootFret" aria-label="Traste inicial de la tónica de la escala"></select></label>
+              <label>Posición<select id="scalePosition" aria-label="Posición de mano de la escala"></select></label>
             </div>
           </article>
         </div>
