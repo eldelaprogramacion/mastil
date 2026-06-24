@@ -51,142 +51,116 @@ const COLORS = [
   { value: "#a9cf54", label: "Lima" }
 ];
 
+function interval(degree, semitones, name) {
+  return { degree, semitones, name };
+}
+
+const I = {
+  P1: interval(1, 0, "Unísono"),
+  m2: interval(2, 1, "Segunda menor"),
+  M2: interval(2, 2, "Segunda mayor"),
+  A2: interval(2, 3, "Segunda aumentada"),
+  m3: interval(3, 3, "Tercera menor"),
+  M3: interval(3, 4, "Tercera mayor"),
+  d4: interval(4, 4, "Cuarta disminuida"),
+  P4: interval(4, 5, "Cuarta justa"),
+  A4: interval(4, 6, "Cuarta aumentada"),
+  d5: interval(5, 6, "Quinta disminuida"),
+  P5: interval(5, 7, "Quinta justa"),
+  A5: interval(5, 8, "Quinta aumentada"),
+  m6: interval(6, 8, "Sexta menor"),
+  M6: interval(6, 9, "Sexta mayor"),
+  d7: interval(7, 9, "Séptima disminuida"),
+  m7: interval(7, 10, "Séptima menor"),
+  M7: interval(7, 11, "Séptima mayor"),
+  P8: interval(8, 12, "Octava"),
+  m9: interval(9, 13, "Novena menor"),
+  M9: interval(9, 14, "Novena mayor"),
+  A9: interval(9, 15, "Novena aumentada"),
+  M10: interval(10, 16, "Décima mayor"),
+  P11: interval(11, 17, "Oncena justa"),
+  A11: interval(11, 18, "Oncena aumentada"),
+  m13: interval(13, 20, "Trecena menor"),
+  M13: interval(13, 21, "Trecena mayor")
+};
+
 const CHORDS = [
-  { code: "M", name: "Mayor", symbol: "", intervals: [0, 4, 7] },
-  { code: "m", name: "Menor", symbol: "m", intervals: [0, 3, 7] },
-  { code: "aug", name: "Aumentado", symbol: "+", intervals: [0, 4, 8] },
-  { code: "dim", name: "Disminuido", symbol: "dim", intervals: [0, 3, 6] },
-  { code: "sus2", name: "Segunda suspendida", symbol: "sus2", intervals: [0, 2, 7] },
-  { code: "sus4", name: "Cuarta suspendida", symbol: "sus4", intervals: [0, 5, 7] },
-  { code: "add2", name: "Segunda añadida", symbol: "add2", intervals: [0, 2, 4, 7] },
-  { code: "add4", name: "Cuarta añadida", symbol: "add4", intervals: [0, 4, 5, 7] },
-  { code: "6", name: "Sexta mayor", symbol: "6", intervals: [0, 4, 7, 9] },
-  { code: "m6", name: "Sexta menor", symbol: "m6", intervals: [0, 3, 7, 9] },
-  { code: "7", name: "Séptima dominante", symbol: "7", intervals: [0, 4, 7, 10] },
-  { code: "maj7", name: "Séptima mayor", symbol: "maj7", intervals: [0, 4, 7, 11] },
-  { code: "m7", name: "Menor séptima", symbol: "m7", intervals: [0, 3, 7, 10] },
-  { code: "m(maj7)", name: "Menor con séptima mayor", symbol: "m(maj7)", intervals: [0, 3, 7, 11] },
-  { code: "dim7", name: "Séptima disminuida", symbol: "dim7", intervals: [0, 3, 6, 9] },
-  { code: "m7b5", name: "Semidisminuido", symbol: "m7b5", intervals: [0, 3, 6, 10] },
-  { code: "aug(maj7)", name: "Aumentado con séptima mayor", symbol: "+maj7", intervals: [0, 4, 8, 11] },
-  { code: "add9", name: "Mayor con novena añadida", symbol: "add9", intervals: [0, 4, 7, 14] },
-  { code: "m(add9)", name: "Menor con novena añadida", symbol: "m(add9)", intervals: [0, 3, 7, 14] },
-  { code: "9", name: "Novena dominante", symbol: "9", intervals: [0, 4, 7, 10, 14] },
-  { code: "maj9", name: "Novena mayor", symbol: "maj9", intervals: [0, 4, 7, 11, 14] },
-  { code: "m9", name: "Novena menor", symbol: "m9", intervals: [0, 3, 7, 10, 14] },
-  { code: "6/9", name: "Sexta con novena", symbol: "6/9", intervals: [0, 4, 7, 9, 14] },
-  { code: "m6/9", name: "Sexta menor con novena", symbol: "m6/9", intervals: [0, 3, 7, 9, 14] },
-  { code: "add11", name: "Mayor con oncena añadida", symbol: "add11", intervals: [0, 4, 7, 17] },
-  { code: "m(add11)", name: "Menor con oncena añadida", symbol: "m(add11)", intervals: [0, 3, 7, 17] },
-  { code: "11", name: "Oncena dominante", symbol: "11", intervals: [0, 4, 7, 10, 14, 17] },
-  { code: "m11", name: "Oncena menor", symbol: "m11", intervals: [0, 3, 7, 10, 14, 17] },
-  { code: "13", name: "Trecena dominante", symbol: "13", intervals: [0, 4, 7, 10, 14, 17, 21] },
-  { code: "maj13", name: "Trecena mayor", symbol: "maj13", intervals: [0, 4, 7, 11, 14, 17, 21] },
-  { code: "m13", name: "Trecena menor", symbol: "m13", intervals: [0, 3, 7, 10, 14, 17, 21] }
+  { code: "M", name: "Mayor", symbol: "", intervals: [I.P1, I.M3, I.P5] },
+  { code: "m", name: "Menor", symbol: "m", intervals: [I.P1, I.m3, I.P5] },
+  { code: "aug", name: "Aumentado", symbol: "+", intervals: [I.P1, I.M3, I.A5] },
+  { code: "dim", name: "Disminuido", symbol: "dim", intervals: [I.P1, I.m3, I.d5] },
+  { code: "sus2", name: "Segunda suspendida", symbol: "sus2", intervals: [I.P1, I.M2, I.P5] },
+  { code: "sus4", name: "Cuarta suspendida", symbol: "sus4", intervals: [I.P1, I.P4, I.P5] },
+  { code: "add2", name: "Segunda añadida", symbol: "add2", intervals: [I.P1, I.M2, I.M3, I.P5] },
+  { code: "add4", name: "Cuarta añadida", symbol: "add4", intervals: [I.P1, I.M3, I.P4, I.P5] },
+  { code: "6", name: "Sexta mayor", symbol: "6", intervals: [I.P1, I.M3, I.P5, I.M6] },
+  { code: "m6", name: "Sexta menor", symbol: "m6", intervals: [I.P1, I.m3, I.P5, I.M6] },
+  { code: "7", name: "Séptima dominante", symbol: "7", intervals: [I.P1, I.M3, I.P5, I.m7] },
+  { code: "maj7", name: "Séptima mayor", symbol: "maj7", intervals: [I.P1, I.M3, I.P5, I.M7] },
+  { code: "m7", name: "Menor séptima", symbol: "m7", intervals: [I.P1, I.m3, I.P5, I.m7] },
+  { code: "m(maj7)", name: "Menor con séptima mayor", symbol: "m(maj7)", intervals: [I.P1, I.m3, I.P5, I.M7] },
+  { code: "dim7", name: "Séptima disminuida", symbol: "dim7", intervals: [I.P1, I.m3, I.d5, I.d7] },
+  { code: "m7b5", name: "Semidisminuido", symbol: "m7b5", intervals: [I.P1, I.m3, I.d5, I.m7] },
+  { code: "aug(maj7)", name: "Aumentado con séptima mayor", symbol: "+maj7", intervals: [I.P1, I.M3, I.A5, I.M7] },
+  { code: "add9", name: "Mayor con novena añadida", symbol: "add9", intervals: [I.P1, I.M3, I.P5, I.M9] },
+  { code: "m(add9)", name: "Menor con novena añadida", symbol: "m(add9)", intervals: [I.P1, I.m3, I.P5, I.M9] },
+  { code: "9", name: "Novena dominante", symbol: "9", intervals: [I.P1, I.M3, I.P5, I.m7, I.M9] },
+  { code: "maj9", name: "Novena mayor", symbol: "maj9", intervals: [I.P1, I.M3, I.P5, I.M7, I.M9] },
+  { code: "m9", name: "Novena menor", symbol: "m9", intervals: [I.P1, I.m3, I.P5, I.m7, I.M9] },
+  { code: "6/9", name: "Sexta con novena", symbol: "6/9", intervals: [I.P1, I.M3, I.P5, I.M6, I.M9] },
+  { code: "m6/9", name: "Sexta menor con novena", symbol: "m6/9", intervals: [I.P1, I.m3, I.P5, I.M6, I.M9] },
+  { code: "add11", name: "Mayor con oncena añadida", symbol: "add11", intervals: [I.P1, I.M3, I.P5, I.P11] },
+  { code: "m(add11)", name: "Menor con oncena añadida", symbol: "m(add11)", intervals: [I.P1, I.m3, I.P5, I.P11] },
+  { code: "11", name: "Oncena dominante", symbol: "11", intervals: [I.P1, I.M3, I.P5, I.m7, I.M9, I.P11] },
+  { code: "m11", name: "Oncena menor", symbol: "m11", intervals: [I.P1, I.m3, I.P5, I.m7, I.M9, I.P11] },
+  { code: "13", name: "Trecena dominante", symbol: "13", intervals: [I.P1, I.M3, I.P5, I.m7, I.M9, I.P11, I.M13] },
+  { code: "maj13", name: "Trecena mayor", symbol: "maj13", intervals: [I.P1, I.M3, I.P5, I.M7, I.M9, I.P11, I.M13] },
+  { code: "m13", name: "Trecena menor", symbol: "m13", intervals: [I.P1, I.m3, I.P5, I.m7, I.M9, I.P11, I.M13] }
 ];
 
 const SCALES = [
-  { name: "Mayor (Jónica)", intervals: [0, 2, 4, 5, 7, 9, 11] },
-  { name: "Dórica", intervals: [0, 2, 3, 5, 7, 9, 10] },
-  { name: "Frigia", intervals: [0, 1, 3, 5, 7, 8, 10] },
-  { name: "Lidia", intervals: [0, 2, 4, 6, 7, 9, 11] },
-  { name: "Mixolidia", intervals: [0, 2, 4, 5, 7, 9, 10] },
-  { name: "Menor natural (Eólica)", intervals: [0, 2, 3, 5, 7, 8, 10] },
-  { name: "Locria", intervals: [0, 1, 3, 5, 6, 8, 10] },
-  { name: "Pentatónica mayor", intervals: [0, 2, 4, 7, 9] },
-  { name: "Pentatónica menor", intervals: [0, 3, 5, 7, 10] },
-  { name: "Blues mayor", intervals: [0, 2, 3, 4, 7, 9] },
-  { name: "Blues menor", intervals: [0, 3, 5, 6, 7, 10] },
-  { name: "Menor armónica", intervals: [0, 2, 3, 5, 7, 8, 11] },
-  { name: "Menor melódica", intervals: [0, 2, 3, 5, 7, 9, 11] },
-  { name: "Frigia dominante", intervals: [0, 1, 4, 5, 7, 8, 10] },
-  { name: "Lidia dominante", intervals: [0, 2, 4, 6, 7, 9, 10] },
-  { name: "Alterada", intervals: [0, 1, 3, 4, 6, 8, 10] },
-  { name: "Mayor armónica", intervals: [0, 2, 4, 5, 7, 8, 11] },
-  { name: "Doble armónica", intervals: [0, 1, 4, 5, 7, 8, 11] },
-  { name: "Húngara menor", intervals: [0, 2, 3, 6, 7, 8, 11] },
-  { name: "Tonos enteros", intervals: [0, 2, 4, 6, 8, 10] },
-  { name: "Disminuida tono-semitono", intervals: [0, 2, 3, 5, 6, 8, 9, 11] },
-  { name: "Disminuida semitono-tono", intervals: [0, 1, 3, 4, 6, 7, 9, 10] },
-  { name: "Bebop dominante", intervals: [0, 2, 4, 5, 7, 9, 10, 11] },
-  { name: "Cromática", intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+  { name: "Mayor (Jónica)", intervals: [I.P1, I.M2, I.M3, I.P4, I.P5, I.M6, I.M7] },
+  { name: "Dórica", intervals: [I.P1, I.M2, I.m3, I.P4, I.P5, I.M6, I.m7] },
+  { name: "Frigia", intervals: [I.P1, I.m2, I.m3, I.P4, I.P5, I.m6, I.m7] },
+  { name: "Lidia", intervals: [I.P1, I.M2, I.M3, I.A4, I.P5, I.M6, I.M7] },
+  { name: "Mixolidia", intervals: [I.P1, I.M2, I.M3, I.P4, I.P5, I.M6, I.m7] },
+  { name: "Menor natural (Eólica)", intervals: [I.P1, I.M2, I.m3, I.P4, I.P5, I.m6, I.m7] },
+  { name: "Locria", intervals: [I.P1, I.m2, I.m3, I.P4, I.d5, I.m6, I.m7] },
+  { name: "Pentatónica mayor", intervals: [I.P1, I.M2, I.M3, I.P5, I.M6] },
+  { name: "Pentatónica menor", intervals: [I.P1, I.m3, I.P4, I.P5, I.m7] },
+  { name: "Blues mayor", intervals: [I.P1, I.M2, I.A2, I.M3, I.P5, I.M6] },
+  { name: "Blues menor", intervals: [I.P1, I.m3, I.P4, I.A4, I.P5, I.m7] },
+  { name: "Menor armónica", intervals: [I.P1, I.M2, I.m3, I.P4, I.P5, I.m6, I.M7] },
+  { name: "Menor melódica", intervals: [I.P1, I.M2, I.m3, I.P4, I.P5, I.M6, I.M7] },
+  { name: "Frigia dominante", intervals: [I.P1, I.m2, I.M3, I.P4, I.P5, I.m6, I.m7] },
+  { name: "Lidia dominante", intervals: [I.P1, I.M2, I.M3, I.A4, I.P5, I.M6, I.m7] },
+  { name: "Alterada", intervals: [I.P1, I.m2, I.A2, I.M3, I.A4, I.A5, I.m7] },
+  { name: "Mayor armónica", intervals: [I.P1, I.M2, I.M3, I.P4, I.P5, I.m6, I.M7] },
+  { name: "Doble armónica", intervals: [I.P1, I.m2, I.M3, I.P4, I.P5, I.m6, I.M7] },
+  { name: "Húngara menor", intervals: [I.P1, I.M2, I.m3, I.A4, I.P5, I.m6, I.M7] },
+  { name: "Tonos enteros", intervals: [I.P1, I.M2, I.M3, I.A4, I.A5, I.m7] },
+  { name: "Disminuida tono-semitono", intervals: [I.P1, I.M2, I.m3, I.P4, I.d5, I.m6, I.M6, I.M7] },
+  { name: "Disminuida semitono-tono", intervals: [I.P1, I.m2, I.A2, I.M3, I.A4, I.P5, I.M6, I.m7] },
+  { name: "Bebop dominante", intervals: [I.P1, I.M2, I.M3, I.P4, I.P5, I.M6, I.m7, I.M7] },
+  {
+    name: "Cromática",
+    forceSharpNames: true,
+    intervals: [
+      interval(1, 0, "Unísono"),
+      interval(1, 1, "Unísono aumentado"),
+      interval(2, 2, "Segunda mayor"),
+      interval(2, 3, "Segunda aumentada"),
+      interval(3, 4, "Tercera mayor"),
+      interval(4, 5, "Cuarta justa"),
+      interval(4, 6, "Cuarta aumentada"),
+      interval(5, 7, "Quinta justa"),
+      interval(5, 8, "Quinta aumentada"),
+      interval(6, 9, "Sexta mayor"),
+      interval(6, 10, "Sexta aumentada"),
+      interval(7, 11, "Séptima mayor")
+    ]
+  }
 ];
-
-const CHORD_DEGREES = {
-  M: [0, 2, 4],
-  m: [0, 2, 4],
-  aug: [0, 2, 4],
-  dim: [0, 2, 4],
-  sus2: [0, 1, 4],
-  sus4: [0, 3, 4],
-  add2: [0, 1, 2, 4],
-  add4: [0, 2, 3, 4],
-  "6": [0, 2, 4, 5],
-  m6: [0, 2, 4, 5],
-  "7": [0, 2, 4, 6],
-  maj7: [0, 2, 4, 6],
-  m7: [0, 2, 4, 6],
-  "m(maj7)": [0, 2, 4, 6],
-  dim7: [0, 2, 4, 6],
-  m7b5: [0, 2, 4, 6],
-  "aug(maj7)": [0, 2, 4, 6],
-  add9: [0, 2, 4, 1],
-  "m(add9)": [0, 2, 4, 1],
-  "9": [0, 2, 4, 6, 1],
-  maj9: [0, 2, 4, 6, 1],
-  m9: [0, 2, 4, 6, 1],
-  "6/9": [0, 2, 4, 5, 1],
-  "m6/9": [0, 2, 4, 5, 1],
-  add11: [0, 2, 4, 3],
-  "m(add11)": [0, 2, 4, 3],
-  "11": [0, 2, 4, 6, 1, 3],
-  m11: [0, 2, 4, 6, 1, 3],
-  "13": [0, 2, 4, 6, 1, 3, 5],
-  maj13: [0, 2, 4, 6, 1, 3, 5],
-  m13: [0, 2, 4, 6, 1, 3, 5]
-};
-
-const SCALE_DEGREES = {
-  "Mayor (Jónica)": [0, 1, 2, 3, 4, 5, 6],
-  Dórica: [0, 1, 2, 3, 4, 5, 6],
-  Frigia: [0, 1, 2, 3, 4, 5, 6],
-  Lidia: [0, 1, 2, 3, 4, 5, 6],
-  Mixolidia: [0, 1, 2, 3, 4, 5, 6],
-  "Menor natural (Eólica)": [0, 1, 2, 3, 4, 5, 6],
-  Locria: [0, 1, 2, 3, 4, 5, 6],
-  "Pentatónica mayor": [0, 1, 2, 4, 5],
-  "Pentatónica menor": [0, 2, 3, 4, 6],
-  "Blues mayor": [0, 1, 2, 2, 4, 5],
-  "Blues menor": [0, 2, 3, 4, 4, 6],
-  "Menor armónica": [0, 1, 2, 3, 4, 5, 6],
-  "Menor melódica": [0, 1, 2, 3, 4, 5, 6],
-  "Frigia dominante": [0, 1, 2, 3, 4, 5, 6],
-  "Lidia dominante": [0, 1, 2, 3, 4, 5, 6],
-  Alterada: [0, 1, 2, 3, 4, 5, 6],
-  "Mayor armónica": [0, 1, 2, 3, 4, 5, 6],
-  "Doble armónica": [0, 1, 2, 3, 4, 5, 6],
-  "Húngara menor": [0, 1, 2, 3, 4, 5, 6],
-  "Tonos enteros": [0, 1, 2, 3, 4, 5],
-  "Disminuida tono-semitono": [0, 1, 2, 3, 4, 5, 5, 6],
-  "Disminuida semitono-tono": [0, 1, 2, 2, 3, 4, 5, 6],
-  "Bebop dominante": [0, 1, 2, 3, 4, 5, 6, 6],
-  Cromática: [0, 0, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6]
-};
-
-const DEFAULT_DEGREES_BY_INTERVAL = {
-  0: 0,
-  1: 1,
-  2: 1,
-  3: 2,
-  4: 2,
-  5: 3,
-  6: 3,
-  7: 4,
-  8: 5,
-  9: 5,
-  10: 6,
-  11: 6
-};
 
 const INSTRUMENTS = [
   {
@@ -286,11 +260,6 @@ function setManualMode() {
   patternStatus.textContent = "Selección manual";
 }
 
-function patternDegrees(pattern, kind) {
-  const knownDegrees = kind === "chord" ? CHORD_DEGREES[pattern.code] : SCALE_DEGREES[pattern.name];
-  return knownDegrees || pattern.intervals.map(interval => DEFAULT_DEGREES_BY_INTERVAL[interval % 12]);
-}
-
 function accidentalForOffset(offset) {
   if (offset === -2) return "bb";
   if (offset === -1) return "b";
@@ -309,10 +278,16 @@ function shortestPitchOffset(pitch, naturalPitch) {
   return offset === -6 ? 6 : offset;
 }
 
-function spellPatternNote(tonic, interval, degree) {
+function degreeLetterOffset(degree) {
+  return modulo(degree - 1, LETTERS.length);
+}
+
+function spellPatternNote(tonic, interval, pattern) {
+  const pitch = modulo(tonic.pitch + interval.semitones, NOTES.length);
+  if (pattern.forceSharpNames) return NOTES[pitch].sharp;
+
   const tonicLetterIndex = LETTERS.indexOf(tonic.label[0]);
-  const letter = LETTERS[(tonicLetterIndex + degree) % LETTERS.length];
-  const pitch = (tonic.pitch + interval) % NOTES.length;
+  const letter = LETTERS[(tonicLetterIndex + degreeLetterOffset(interval.degree)) % LETTERS.length];
   const offset = shortestPitchOffset(pitch, NATURAL_PITCHES[letter]);
 
   return `${letter}${accidentalForOffset(offset)}` || NOTES[pitch][noteSpelling];
@@ -358,7 +333,7 @@ function buildScaleSequence(pattern, octaves) {
   const intervals = [];
 
   for (let octave = 0; octave < octaves; octave += 1) {
-    pattern.intervals.forEach(interval => intervals.push(interval + octave * 12));
+    pattern.intervals.forEach(interval => intervals.push(interval.semitones + octave * 12));
   }
 
   intervals.push(octaves * 12);
@@ -443,7 +418,7 @@ function buildChordPositionShape(tonic, pattern) {
 
   const startString = activeInstrument.strings[stringIndex];
   const startMidi = startString.midi + rootFret;
-  const intervals = [...new Set(pattern.intervals.map(interval => interval % 12))];
+  const intervals = [...new Set(pattern.intervals.map(interval => modulo(interval.semitones, NOTES.length)))];
   const rootPosition = {
     string: startString,
     stringIndex,
@@ -759,8 +734,6 @@ function updateInstrumentText() {
 }
 
 function applyPattern(tonic, pattern, label, kind) {
-  const degrees = patternDegrees(pattern, kind);
-
   noteSpelling = tonic.spelling;
   state.forEach(item => {
     item.active = false;
@@ -773,10 +746,10 @@ function applyPattern(tonic, pattern, label, kind) {
   visiblePositions = [];
 
   pattern.intervals.forEach((interval, degreeIndex) => {
-    const pitch = (tonic.pitch + interval) % 12;
+    const pitch = modulo(tonic.pitch + interval.semitones, NOTES.length);
     state[pitch].active = true;
     state[pitch].color = COLORS[degreeIndex % COLORS.length].value;
-    state[pitch].displayName = spellPatternNote(tonic, interval, degrees[degreeIndex]);
+    state[pitch].displayName = spellPatternNote(tonic, interval, pattern);
     if (!activeSequence.includes(pitch)) activeSequence.push(pitch);
   });
 
