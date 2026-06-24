@@ -222,6 +222,7 @@ const INSTRUMENTS = [
 const BOARD = { width: 1320, height: 430, openWidth: 82, frets: 15 };
 const state = NOTES.map((note, pitch) => ({ note, pitch, active: false, color: "", displayName: "" }));
 let activeInstrument = INSTRUMENTS[0];
+let activeSequence = [];
 let noteSpelling = "sharp";
 
 const controls = document.querySelector("#noteControls");
@@ -260,6 +261,7 @@ function resetDisplayNames() {
 
 function setManualMode() {
   resetDisplayNames();
+  activeSequence = [];
   patternStatus.textContent = "Selección manual";
 }
 
@@ -277,8 +279,12 @@ function accidentalForOffset(offset) {
   return "";
 }
 
+function modulo(value, size) {
+  return ((value % size) + size) % size;
+}
+
 function shortestPitchOffset(pitch, naturalPitch) {
-  const offset = ((pitch - naturalPitch + 6) % 12) - 6;
+  const offset = modulo(pitch - naturalPitch + 6, 12) - 6;
   return offset === -6 ? 6 : offset;
 }
 
@@ -357,12 +363,14 @@ function applyPattern(tonic, pattern, label, kind) {
     item.color = "";
     item.displayName = "";
   });
+  activeSequence = [];
 
   pattern.intervals.forEach((interval, degreeIndex) => {
     const pitch = (tonic.pitch + interval) % 12;
     state[pitch].active = true;
     state[pitch].color = COLORS[degreeIndex % COLORS.length].value;
     state[pitch].displayName = spellPatternNote(tonic, interval, degrees[degreeIndex]);
+    if (!activeSequence.includes(pitch)) activeSequence.push(pitch);
   });
 
   patternStatus.textContent = label;
@@ -531,7 +539,9 @@ function addDoubleMarker(fret) {
 
 function renderNotes() {
   const fragments = document.createDocumentFragment();
-  const activeNotes = state.filter(item => item.active);
+  const activeNotes = activeSequence.length
+    ? activeSequence.map(pitch => state[pitch]).filter(item => item.active)
+    : state.filter(item => item.active);
 
   activeInstrument.strings.forEach((string, stringIndex) => {
     for (let fret = 0; fret <= BOARD.frets; fret += 1) {
