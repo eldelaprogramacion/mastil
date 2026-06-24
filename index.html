@@ -72,10 +72,13 @@
       <section class="fretboard-section" aria-labelledby="fretboard-title">
         <div class="section-heading fretboard-heading">
           <div>
-            <p class="eyebrow">Afinación estándar</p>
-            <h2 id="fretboard-title">Primera cuerda arriba · sexta cuerda abajo</h2>
+            <p class="eyebrow" id="instrumentTuning">Afinación estándar</p>
+            <h2 id="fretboard-title">Guitarra · primera cuerda arriba · sexta cuerda abajo</h2>
           </div>
-          <p class="selection-status" id="selectionStatus" aria-live="polite">Ninguna nota activa</p>
+          <div class="fretboard-actions">
+            <label>Instrumento<select id="instrumentSelect" aria-label="Instrumento"></select></label>
+            <p class="selection-status" id="selectionStatus" aria-live="polite">Ninguna nota activa</p>
+          </div>
         </div>
 
         <div class="fretboard-scroller">

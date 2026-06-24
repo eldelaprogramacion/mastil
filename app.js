@@ -33,6 +33,9 @@ const TONICS = [
   { label: "B", pitch: 11, spelling: "sharp" }
 ];
 
+const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
+const NATURAL_PITCHES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
 const COLORS = [
   { value: "#f2c14e", label: "Amarillo" },
   { value: "#f28c45", label: "Naranja" },
@@ -109,21 +112,120 @@ const SCALES = [
   { name: "Cromática", intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
 ];
 
-// De la primera cuerda (arriba) a la sexta (abajo).
-const STRINGS = [
-  { note: "E", pitch: 4, number: 1 },
-  { note: "B", pitch: 11, number: 2 },
-  { note: "G", pitch: 7, number: 3 },
-  { note: "D", pitch: 2, number: 4 },
-  { note: "A", pitch: 9, number: 5 },
-  { note: "E", pitch: 4, number: 6 }
+const CHORD_DEGREES = {
+  M: [0, 2, 4],
+  m: [0, 2, 4],
+  aug: [0, 2, 4],
+  dim: [0, 2, 4],
+  sus2: [0, 1, 4],
+  sus4: [0, 3, 4],
+  add2: [0, 1, 2, 4],
+  add4: [0, 2, 3, 4],
+  "6": [0, 2, 4, 5],
+  m6: [0, 2, 4, 5],
+  "7": [0, 2, 4, 6],
+  maj7: [0, 2, 4, 6],
+  m7: [0, 2, 4, 6],
+  "m(maj7)": [0, 2, 4, 6],
+  dim7: [0, 2, 4, 6],
+  m7b5: [0, 2, 4, 6],
+  "aug(maj7)": [0, 2, 4, 6],
+  add9: [0, 2, 4, 1],
+  "m(add9)": [0, 2, 4, 1],
+  "9": [0, 2, 4, 6, 1],
+  maj9: [0, 2, 4, 6, 1],
+  m9: [0, 2, 4, 6, 1],
+  "6/9": [0, 2, 4, 5, 1],
+  "m6/9": [0, 2, 4, 5, 1],
+  add11: [0, 2, 4, 3],
+  "m(add11)": [0, 2, 4, 3],
+  "11": [0, 2, 4, 6, 1, 3],
+  m11: [0, 2, 4, 6, 1, 3],
+  "13": [0, 2, 4, 6, 1, 3, 5],
+  maj13: [0, 2, 4, 6, 1, 3, 5],
+  m13: [0, 2, 4, 6, 1, 3, 5]
+};
+
+const SCALE_DEGREES = {
+  "Mayor (Jónica)": [0, 1, 2, 3, 4, 5, 6],
+  Dórica: [0, 1, 2, 3, 4, 5, 6],
+  Frigia: [0, 1, 2, 3, 4, 5, 6],
+  Lidia: [0, 1, 2, 3, 4, 5, 6],
+  Mixolidia: [0, 1, 2, 3, 4, 5, 6],
+  "Menor natural (Eólica)": [0, 1, 2, 3, 4, 5, 6],
+  Locria: [0, 1, 2, 3, 4, 5, 6],
+  "Pentatónica mayor": [0, 1, 2, 4, 5],
+  "Pentatónica menor": [0, 2, 3, 4, 6],
+  "Blues mayor": [0, 1, 2, 2, 4, 5],
+  "Blues menor": [0, 2, 3, 4, 4, 6],
+  "Menor armónica": [0, 1, 2, 3, 4, 5, 6],
+  "Menor melódica": [0, 1, 2, 3, 4, 5, 6],
+  "Frigia dominante": [0, 1, 2, 3, 4, 5, 6],
+  "Lidia dominante": [0, 1, 2, 3, 4, 5, 6],
+  Alterada: [0, 1, 2, 3, 4, 5, 6],
+  "Mayor armónica": [0, 1, 2, 3, 4, 5, 6],
+  "Doble armónica": [0, 1, 2, 3, 4, 5, 6],
+  "Húngara menor": [0, 1, 2, 3, 4, 5, 6],
+  "Tonos enteros": [0, 1, 2, 3, 4, 5],
+  "Disminuida tono-semitono": [0, 1, 2, 3, 4, 5, 5, 6],
+  "Disminuida semitono-tono": [0, 1, 2, 2, 3, 4, 5, 6],
+  "Bebop dominante": [0, 1, 2, 3, 4, 5, 6, 6],
+  Cromática: [0, 0, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6]
+};
+
+const DEFAULT_DEGREES_BY_INTERVAL = {
+  0: 0,
+  1: 1,
+  2: 1,
+  3: 2,
+  4: 2,
+  5: 3,
+  6: 3,
+  7: 4,
+  8: 5,
+  9: 5,
+  10: 6,
+  11: 6
+};
+
+const INSTRUMENTS = [
+  {
+    id: "guitar",
+    label: "Guitarra",
+    tuningLabel: "Afinación estándar",
+    fretboardTitle: "Guitarra · primera cuerda arriba · sexta cuerda abajo",
+    ariaLabel: "Diapasón de guitarra de 15 trastes",
+    strings: [
+      { note: "E", pitch: 4, number: 1 },
+      { note: "B", pitch: 11, number: 2 },
+      { note: "G", pitch: 7, number: 3 },
+      { note: "D", pitch: 2, number: 4 },
+      { note: "A", pitch: 9, number: 5 },
+      { note: "E", pitch: 4, number: 6 }
+    ]
+  },
+  {
+    id: "bass",
+    label: "Bajo",
+    tuningLabel: "Afinación estándar",
+    fretboardTitle: "Bajo · primera cuerda arriba · cuarta cuerda abajo",
+    ariaLabel: "Diapasón de bajo de 15 trastes",
+    strings: [
+      { note: "G", pitch: 7, number: 1 },
+      { note: "D", pitch: 2, number: 2 },
+      { note: "A", pitch: 9, number: 3 },
+      { note: "E", pitch: 4, number: 4 }
+    ]
+  }
 ];
 
 const BOARD = { width: 1320, height: 430, openWidth: 82, frets: 15 };
-const state = NOTES.map((note, pitch) => ({ note, pitch, active: false, color: "" }));
+const state = NOTES.map((note, pitch) => ({ note, pitch, active: false, color: "", displayName: "" }));
+let activeInstrument = INSTRUMENTS[0];
 let noteSpelling = "sharp";
 
 const controls = document.querySelector("#noteControls");
+const fretboard = document.querySelector("#fretboard");
 const fretLines = document.querySelector("#fretLines");
 const stringsLayer = document.querySelector("#strings");
 const markerLayer = document.querySelector("#fretMarkers");
@@ -132,14 +234,66 @@ const numbersLayer = document.querySelector("#fretNumbers");
 const stringLabels = document.querySelector("#stringLabels");
 const selectionStatus = document.querySelector("#selectionStatus");
 const patternStatus = document.querySelector("#patternStatus");
+const instrumentSelect = document.querySelector("#instrumentSelect");
+const instrumentTuning = document.querySelector("#instrumentTuning");
+const fretboardTitle = document.querySelector("#fretboard-title");
 
 function noteName(pitch) {
-  return NOTES[pitch][noteSpelling];
+  return state[pitch].displayName || NOTES[pitch][noteSpelling];
+}
+
+function alternateNoteName(item) {
+  if (!item.displayName) {
+    return item.note.flat === item.note.sharp ? "" : item.note.flat;
+  }
+
+  const enharmonics = [item.note.sharp, item.note.flat].filter((name, index, names) => (
+    name && name !== item.displayName && names.indexOf(name) === index
+  ));
+
+  return enharmonics[0] || "";
+}
+
+function resetDisplayNames() {
+  state.forEach(item => { item.displayName = ""; });
+}
+
+function setManualMode() {
+  resetDisplayNames();
+  patternStatus.textContent = "Selección manual";
+}
+
+function patternDegrees(pattern, kind) {
+  const knownDegrees = kind === "chord" ? CHORD_DEGREES[pattern.code] : SCALE_DEGREES[pattern.name];
+  return knownDegrees || pattern.intervals.map(interval => DEFAULT_DEGREES_BY_INTERVAL[interval % 12]);
+}
+
+function accidentalForOffset(offset) {
+  if (offset === -2) return "bb";
+  if (offset === -1) return "b";
+  if (offset === 0) return "";
+  if (offset === 1) return "#";
+  if (offset === 2) return "##";
+  return "";
+}
+
+function shortestPitchOffset(pitch, naturalPitch) {
+  const offset = ((pitch - naturalPitch + 6) % 12) - 6;
+  return offset === -6 ? 6 : offset;
+}
+
+function spellPatternNote(tonic, interval, degree) {
+  const tonicLetterIndex = LETTERS.indexOf(tonic.label[0]);
+  const letter = LETTERS[(tonicLetterIndex + degree) % LETTERS.length];
+  const pitch = (tonic.pitch + interval) % NOTES.length;
+  const offset = shortestPitchOffset(pitch, NATURAL_PITCHES[letter]);
+
+  return `${letter}${accidentalForOffset(offset)}` || NOTES[pitch][noteSpelling];
 }
 
 function stringY(index) {
   const padding = 40;
-  return padding + index * ((BOARD.height - padding * 2) / (STRINGS.length - 1));
+  return padding + index * ((BOARD.height - padding * 2) / (activeInstrument.strings.length - 1));
 }
 
 function fretBoundary(fret) {
@@ -163,27 +317,52 @@ function buildHarmonySelectors() {
   document.querySelector("#applyChord").addEventListener("click", () => {
     const tonic = TONICS[Number(document.querySelector("#chordRoot").value)];
     const chord = CHORDS[Number(document.querySelector("#chordType").value)];
-    applyPattern(tonic, chord.intervals, `${tonic.label}${chord.symbol} · ${chord.name}`);
+    applyPattern(tonic, chord, `${tonic.label}${chord.symbol} · ${chord.name}`, "chord");
   });
 
   document.querySelector("#applyScale").addEventListener("click", () => {
     const tonic = TONICS[Number(document.querySelector("#scaleRoot").value)];
     const scale = SCALES[Number(document.querySelector("#scaleType").value)];
-    applyPattern(tonic, scale.intervals, `${tonic.label} · ${scale.name}`);
+    applyPattern(tonic, scale, `${tonic.label} · ${scale.name}`, "scale");
   });
 }
 
-function applyPattern(tonic, intervals, label) {
+function buildInstrumentSelector() {
+  instrumentSelect.innerHTML = INSTRUMENTS
+    .map((instrument, index) => `<option value="${index}">${instrument.label}</option>`)
+    .join("");
+
+  instrumentSelect.addEventListener("change", () => {
+    activeInstrument = INSTRUMENTS[Number(instrumentSelect.value)];
+    updateInstrumentText();
+    buildFretboard();
+    renderNotes();
+  });
+
+  updateInstrumentText();
+}
+
+function updateInstrumentText() {
+  instrumentTuning.textContent = activeInstrument.tuningLabel;
+  fretboardTitle.textContent = activeInstrument.fretboardTitle;
+  fretboard.setAttribute("aria-label", activeInstrument.ariaLabel);
+}
+
+function applyPattern(tonic, pattern, label, kind) {
+  const degrees = patternDegrees(pattern, kind);
+
   noteSpelling = tonic.spelling;
   state.forEach(item => {
     item.active = false;
     item.color = "";
+    item.displayName = "";
   });
 
-  [...new Set(intervals)].forEach((interval, degree) => {
+  pattern.intervals.forEach((interval, degreeIndex) => {
     const pitch = (tonic.pitch + interval) % 12;
     state[pitch].active = true;
-    state[pitch].color = COLORS[degree].value;
+    state[pitch].color = COLORS[degreeIndex % COLORS.length].value;
+    state[pitch].displayName = spellPatternNote(tonic, interval, degrees[degreeIndex]);
   });
 
   patternStatus.textContent = label;
@@ -230,7 +409,7 @@ function buildControls() {
       const item = state[Number(colorOption.closest(".note-card").dataset.index)];
       item.color = colorOption.value;
       if (!item.color) item.active = false;
-      patternStatus.textContent = "Selección manual";
+      setManualMode();
       closeColorMenus();
       syncControls();
       renderNotes();
@@ -241,7 +420,7 @@ function buildControls() {
     if (!button) return;
     const item = state[Number(button.closest(".note-card").dataset.index)];
     item.active = !item.active;
-    patternStatus.textContent = "Selección manual";
+    setManualMode();
     syncControls();
     renderNotes();
   });
@@ -270,6 +449,9 @@ function syncControls() {
     const selectedColor = card.querySelector(".selected-color");
     const trigger = card.querySelector(".color-trigger");
     const button = card.querySelector(".note-toggle");
+    const noteLabel = card.querySelector(".note-name");
+    const primaryName = noteName(item.pitch);
+    const alternateName = alternateNoteName(item);
 
     card.querySelectorAll(".color-option").forEach(option => {
       option.disabled = Boolean(option.value && option.value !== item.color && usedColors.has(option.value));
@@ -279,17 +461,25 @@ function syncControls() {
     card.style.setProperty("--note-color", item.color || "#777168");
     card.classList.toggle("active", item.active);
     card.classList.toggle("has-color", Boolean(item.color));
+    noteLabel.querySelector("span").textContent = primaryName;
+    noteLabel.querySelector("small").innerHTML = alternateName || "&nbsp;";
     selectedColor.classList.toggle("empty", !item.color);
     selectedColor.style.background = item.color || "transparent";
-    trigger.setAttribute("aria-label", item.color ? `Cambiar color de ${item.note.sharp}` : `Elegir color para ${item.note.sharp}`);
+    trigger.setAttribute("aria-label", item.color ? `Cambiar color de ${primaryName}` : `Elegir color para ${primaryName}`);
     button.disabled = !item.color;
     button.setAttribute("aria-pressed", String(item.active));
-    button.setAttribute("aria-label", item.color ? `${item.active ? "Desactivar" : "Activar"} nota ${item.note.sharp}` : `Asigna un color para la nota ${item.note.sharp}`);
+    button.setAttribute("aria-label", item.color ? `${item.active ? "Desactivar" : "Activar"} nota ${primaryName}` : `Asigna un color para la nota ${primaryName}`);
   });
 }
 
 function buildFretboard() {
-  STRINGS.forEach((string, index) => {
+  stringLabels.replaceChildren();
+  stringsLayer.replaceChildren();
+  fretLines.replaceChildren();
+  markerLayer.replaceChildren();
+  numbersLayer.replaceChildren();
+
+  activeInstrument.strings.forEach((string, index) => {
     const y = stringY(index);
     const label = document.createElement("div");
     label.className = "string-label";
@@ -343,7 +533,7 @@ function renderNotes() {
   const fragments = document.createDocumentFragment();
   const activeNotes = state.filter(item => item.active);
 
-  STRINGS.forEach((string, stringIndex) => {
+  activeInstrument.strings.forEach((string, stringIndex) => {
     for (let fret = 0; fret <= BOARD.frets; fret += 1) {
       const pitch = (string.pitch + fret) % 12;
       const item = state[pitch];
@@ -369,12 +559,13 @@ function renderNotes() {
 
 document.querySelector("#clearButton").addEventListener("click", () => {
   state.forEach(item => { item.active = false; });
-  patternStatus.textContent = "Selección manual";
+  setManualMode();
   syncControls();
   renderNotes();
 });
 
 buildHarmonySelectors();
+buildInstrumentSelector();
 buildControls();
 buildFretboard();
 renderNotes();

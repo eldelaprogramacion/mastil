@@ -350,6 +350,33 @@ h2 {
 }
 
 .fretboard-heading { padding: 0 24px; }
+.fretboard-actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 18px;
+  min-width: 280px;
+}
+
+.fretboard-actions label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.67rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fretboard-actions select {
+  width: 130px;
+  height: 38px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #151513;
+}
+
 .selection-status { margin: 0; color: var(--muted); font-size: 0.84rem; }
 .fretboard-scroller { overflow-x: auto; overflow-y: hidden; padding: 6px 24px 18px; scrollbar-color: #66563a #24231f; }
 .fretboard-layout {
@@ -517,6 +544,8 @@ h2 {
   .pattern-status { display: none; }
   .note-controls { grid-template-columns: repeat(3, 1fr); }
   .section-heading { align-items: start; }
+  .fretboard-actions { min-width: 0; }
+  .fretboard-actions select { width: 120px; }
   .clear-button { white-space: nowrap; font-size: 0.72rem; }
   .fretboard-heading { padding: 0 16px; }
   .selection-status { display: none; }
