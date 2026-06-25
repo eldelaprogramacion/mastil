@@ -220,6 +220,8 @@ const fretboardTitle = document.querySelector("#fretboard-title");
 const chordRoot = document.querySelector("#chordRoot");
 const chordType = document.querySelector("#chordType");
 const chordView = document.querySelector("#chordView");
+const chordOctaves = document.querySelector("#chordOctaves");
+const chordInversion = document.querySelector("#chordInversion");
 const chordString = document.querySelector("#chordString");
 const chordRootFret = document.querySelector("#chordRootFret");
 const chordPosition = document.querySelector("#chordPosition");
@@ -309,12 +311,65 @@ function selectedChord() {
   return CHORDS[Number(chordType.value)];
 }
 
-function rootFretPositions(tonic, stringIndex) {
+function selectedChordInversion() {
+  return Number(chordInversion.value || 0);
+}
+
+function selectedChordOctaves() {
+  return Number(chordOctaves.value || 1);
+}
+
+function chordToneIntervals(pattern) {
+  const used = new Set();
+  return pattern.intervals.filter(interval => {
+    const pitchClass = modulo(interval.semitones, NOTES.length);
+    if (used.has(pitchClass)) return false;
+    used.add(pitchClass);
+    return true;
+  });
+}
+
+function chordBassInterval(pattern) {
+  const intervals = chordToneIntervals(pattern);
+  return intervals[Math.min(selectedChordInversion(), intervals.length - 1)] || I.P1;
+}
+
+function chordPositionIntervals(pattern) {
+  const intervals = chordToneIntervals(pattern);
+  const inversion = Math.min(selectedChordInversion(), intervals.length - 1);
+  const bassSemitones = intervals[inversion]?.semitones || 0;
+  const rotated = [
+    ...intervals.slice(inversion),
+    ...intervals.slice(0, inversion).map(interval => ({ ...interval, semitones: interval.semitones + 12 }))
+  ];
+
+  const sequence = [];
+  for (let octave = 0; octave < selectedChordOctaves(); octave += 1) {
+    rotated.forEach(interval => sequence.push(interval.semitones - bassSemitones + octave * 12));
+  }
+
+  return sequence;
+}
+
+function selectedChordGroup() {
+  const [start, end] = chordString.value.split("-").map(Number);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return [];
+  return Array.from({ length: end - start + 1 }, (_, offset) => start + offset);
+}
+
+function chordBassStringIndex() {
+  const group = selectedChordGroup();
+  return group[group.length - 1] ?? 0;
+}
+
+function rootFretPositions(tonic, stringIndex, targetInterval = I.P1) {
   const string = activeInstrument.strings[stringIndex];
+  if (!string) return [];
   const positions = [];
+  const targetPitch = modulo(tonic.pitch + targetInterval.semitones, NOTES.length);
 
   for (let fret = 0; fret <= POSITION_MAX_FRET; fret += 1) {
-    if ((string.pitch + fret) % NOTES.length === tonic.pitch) positions.push(fret);
+    if ((string.pitch + fret) % NOTES.length === targetPitch) positions.push(fret);
   }
 
   return positions;
@@ -410,84 +465,45 @@ function buildScalePositionPath(tonic, pattern) {
 function buildChordPositionShape(tonic, pattern) {
   if (chordView.value !== "position") return [];
 
-  const stringIndex = Number(chordString.value || 0);
+  const group = selectedChordGroup();
+  const stringIndex = chordBassStringIndex();
   const rootFret = Number(chordRootFret.value);
   const window = selectedWindow(chordPosition);
+  if (!group.length) return [];
   if (!Number.isFinite(rootFret)) return [];
   if (!window) return [];
 
   const startString = activeInstrument.strings[stringIndex];
   const startMidi = startString.midi + rootFret;
-  const intervals = [...new Set(pattern.intervals.map(interval => modulo(interval.semitones, NOTES.length)))];
+  const bassInterval = chordBassInterval(pattern);
+  const intervals = chordPositionIntervals(pattern).slice(0, group.length);
   const rootPosition = {
     string: startString,
     stringIndex,
     fret: rootFret,
-    pitch: tonic.pitch,
+    pitch: modulo(tonic.pitch + bassInterval.semitones, NOTES.length),
     interval: 0
   };
 
-  return buildChordVoicing(intervals, rootPosition, startMidi, window);
+  return buildChordVoicing(intervals, rootPosition, startMidi, window, group);
 }
 
-function buildChordVoicing(intervals, rootPosition, startMidi, window) {
-  const requiredStrings = Math.min(intervals.length, activeInstrument.strings.length);
-  const continuousGroups = continuousStringGroups(requiredStrings).filter(group => group.includes(rootPosition.stringIndex));
-  const openGroups = stringCombinations(requiredStrings).filter(group => group.includes(rootPosition.stringIndex));
-  const groups = [
-    ...continuousGroups,
-    ...openGroups.filter(group => !continuousGroups.some(continuous => sameStringGroup(continuous, group)))
-  ].sort((a, b) => chordGroupScore(a, rootPosition.stringIndex) - chordGroupScore(b, rootPosition.stringIndex));
+function buildChordVoicing(intervals, rootPosition, startMidi, window, group) {
+  const candidates = [];
 
-  for (const group of groups) {
-    const assignment = assignChordIntervalsToStrings(group, intervals, rootPosition, startMidi, window);
-    if (assignment.length) return assignment;
+  for (let size = Math.min(intervals.length, group.length); size >= 1; size -= 1) {
+    const selectedGroup = group.slice(group.length - size);
+    if (!selectedGroup.includes(rootPosition.stringIndex)) continue;
+    const selectedIntervals = intervals.slice(0, size);
+    const assignment = assignChordIntervalsToStrings(selectedGroup, selectedIntervals, rootPosition, startMidi, window);
+    if (assignment.length) candidates.push(assignment);
+  }
+
+  if (candidates.length) {
+    return candidates.sort((a, b) => b.length - a.length || chordVoicingScore(a, rootPosition) - chordVoicingScore(b, rootPosition))[0];
   }
 
   return [];
-}
-
-function continuousStringGroups(size) {
-  const groups = [];
-
-  for (let start = 0; start <= activeInstrument.strings.length - size; start += 1) {
-    groups.push(Array.from({ length: size }, (_, offset) => start + offset));
-  }
-
-  return groups;
-}
-
-function stringCombinations(size) {
-  const groups = [];
-
-  function collect(start, group) {
-    if (group.length === size) {
-      groups.push([...group]);
-      return;
-    }
-
-    for (let index = start; index < activeInstrument.strings.length; index += 1) {
-      group.push(index);
-      collect(index + 1, group);
-      group.pop();
-    }
-  }
-
-  collect(0, []);
-  return groups;
-}
-
-function sameStringGroup(a, b) {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-function chordGroupScore(group, rootStringIndex) {
-  const center = (group[0] + group[group.length - 1]) / 2;
-  const gaps = group.slice(1).reduce((total, stringIndex, index) => (
-    total + Math.max(0, stringIndex - group[index] - 1)
-  ), 0);
-
-  return Math.abs(center - rootStringIndex) + gaps * 3;
 }
 
 function assignChordIntervalsToStrings(group, intervals, rootPosition, startMidi, window) {
@@ -581,9 +597,31 @@ function updateStringOptions(selectElement) {
   }
 }
 
-function updateRootFretOptions(tonic, stringSelect, rootFretSelect, positionSelect, viewSelect, extraControls = []) {
+function updateChordGroupOptions() {
+  const previousValue = chordString.value;
+  const groupSize = Math.min(4, activeInstrument.strings.length);
+  const groups = [];
+
+  for (let start = 0; start <= activeInstrument.strings.length - groupSize; start += 1) {
+    const end = start + groupSize - 1;
+    groups.push({ start, end });
+  }
+
+  chordString.innerHTML = groups.map(group => {
+    const first = activeInstrument.strings[group.start];
+    const last = activeInstrument.strings[group.end];
+    return `<option value="${group.start}-${group.end}">Cuerdas ${first.number} a ${last.number}</option>`;
+  }).join("");
+
+  if ([...chordString.options].some(option => option.value === previousValue)) {
+    chordString.value = previousValue;
+  }
+}
+
+function updateRootFretOptions(tonic, stringSelect, rootFretSelect, positionSelect, viewSelect, extraControls = [], targetInterval = I.P1) {
   const previousRoot = rootFretSelect.value;
-  const positions = rootFretPositions(tonic, Number(stringSelect.value || 0));
+  const stringIndex = stringSelect === chordString ? chordBassStringIndex() : Number(stringSelect.value || 0);
+  const positions = rootFretPositions(tonic, stringIndex, targetInterval);
 
   rootFretSelect.innerHTML = positions.length
     ? positions.map(fret => `<option value="${fret}">${fret === 0 ? "Al aire" : `Traste ${fret}`}</option>`).join("")
@@ -620,14 +658,28 @@ function updateScalePositionOptions() {
 }
 
 function updateChordPositionOptions() {
-  updateRootFretOptions(selectedChordTonic(), chordString, chordRootFret, chordPosition, chordView, [chordString]);
+  updateChordInversionOptions();
+  updateRootFretOptions(selectedChordTonic(), chordString, chordRootFret, chordPosition, chordView, [chordOctaves, chordInversion, chordString], chordBassInterval(selectedChord()));
 }
 
 function updateAllPositionOptions() {
   updateStringOptions(scaleString);
-  updateStringOptions(chordString);
+  updateChordGroupOptions();
   updateScalePositionOptions();
   updateChordPositionOptions();
+}
+
+function updateChordInversionOptions() {
+  const previousValue = chordInversion.value;
+  const intervals = chordToneIntervals(selectedChord());
+  chordInversion.innerHTML = intervals.map((interval, index) => {
+    const label = index === 0 ? "Estado raíz" : `${index}ª inversión`;
+    return `<option value="${index}">${label}</option>`;
+  }).join("");
+
+  if ([...chordInversion.options].some(option => option.value === previousValue)) {
+    chordInversion.value = previousValue;
+  }
 }
 
 function stringY(index) {
@@ -681,12 +733,18 @@ function buildHarmonySelectors() {
     });
   });
 
-  [chordRoot, chordType, chordView, chordString, chordRootFret, chordPosition].forEach(control => {
+  [chordRoot, chordType, chordView, chordOctaves, chordInversion, chordString, chordRootFret, chordPosition].forEach(control => {
     control.addEventListener("change", () => {
-      if (control === chordRoot || control === chordString || control === chordView) {
+      if (control === chordRoot || control === chordType || control === chordInversion || control === chordString || control === chordView) {
         updateChordPositionOptions();
       } else if (control === chordRootFret) {
-        updateHandPositionOptions(chordRootFret, chordPosition, chordView, rootFretPositions(selectedChordTonic(), Number(chordString.value || 0)), [chordString]);
+        updateHandPositionOptions(
+          chordRootFret,
+          chordPosition,
+          chordView,
+          rootFretPositions(selectedChordTonic(), chordBassStringIndex(), chordBassInterval(selectedChord())),
+          [chordOctaves, chordInversion, chordString]
+        );
       }
 
       if (activePatternKind === "chord") {
@@ -953,6 +1011,8 @@ function renderNotes() {
     ? (activePatternKind === "scale" ? "Posición no disponible para esa cuerda y octavas" : "Acorde no disponible en esa posición")
     : activePatternKind === "scale" && positionModeActive && visiblePositions.length < requestedScaleNoteCount()
     ? `${visiblePositions.length} notas visibles: ${visiblePositions.map(position => noteName(position.pitch)).join(" · ")}`
+    : activePatternKind === "chord" && positionModeActive && visiblePositions.length < requestedChordNoteCount()
+    ? `${visiblePositions.length} notas visibles: ${visiblePositions.map(position => noteName(position.pitch)).join(" · ")}`
     : activeNotes.length
     ? `${activeNotes.length} ${activeNotes.length === 1 ? "nota activa" : "notas activas"}: ${activeNotes.map(item => noteName(item.pitch)).join(" · ")}`
     : "Ninguna nota activa";
@@ -961,6 +1021,11 @@ function renderNotes() {
 function requestedScaleNoteCount() {
   if (activePatternKind !== "scale") return 0;
   return selectedScale().intervals.length * Number(scaleOctaves.value || 1) + 1;
+}
+
+function requestedChordNoteCount() {
+  if (activePatternKind !== "chord") return 0;
+  return Math.min(chordPositionIntervals(selectedChord()).length, selectedChordGroup().length);
 }
 
 function createNoteMarker(string, stringIndex, fret, item) {
